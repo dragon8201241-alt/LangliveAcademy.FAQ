@@ -317,23 +317,44 @@
 
 <script>
 async function checkAccess() {
-    const userInput = document.getElementById('user-id-input').value;
+    const userInput = document.getElementById('user-id-input').value.trim().toLowerCase();
     const errorMsg = document.getElementById('error-msg');
     const gate = document.getElementById('entrance-gate');
+    const loginBtn = document.querySelector('#entrance-gate button');
 
-    // 1. 這裡貼上你剛才從 Google 試算表複製的 CSV 網址
+    if (!userInput) {
+        alert("請輸入 Email 或專屬 ID");
+        return;
+    }
+
+    // 1. 填入你的 Google 試算表發佈後的 CSV 網址
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSna5sPtfm_TSZ694NSiWzd09aNnAHz0KdZVJF5PMrC9uPN_twOuS9ITGvhurosNwhaL0_iDRlrji8t/pub?gid=769889894&single=true&output=csv";
 
     try {
-        // 2. 向 Google 抓取資料
-        const response = await fetch(sheetUrl);
-        const data = await response.text();
-        
-        // 3. 將 CSV 轉成 JavaScript 陣列 (簡單處理換行與空白)
-        const whiteList = data.split(/\r?\n/).map(email => email.trim().toLowerCase());
+        loginBtn.innerText = "驗證中...";
+        loginBtn.disabled = true;
 
-        // 4. 比對輸入 (也轉成小寫以防萬一)
-        if (whiteList.includes(userInput.toLowerCase())) {
+        // 2. 抓取資料
+        const response = await fetch(sheetUrl);
+        const csvText = await response.text();
+        
+        // 3. 解析 CSV 資料
+        // 先按行拆分，再按逗號拆分每一列
+        const rows = csvText.split(/\r?\n/).map(row => row.split(','));
+
+        // 4. 比對驗證
+        // 我們從索引 1 (B 欄) 和 索引 2 (C 欄) 找尋匹配項
+        const isAuthorized = rows.some(columns => {
+            if (columns.length < 3) return false; // 確保該行至少有 C 欄之前的資料
+            
+            const emailInSheet = columns[1]?.trim().toLowerCase(); // B 欄
+            const idInSheet = columns[2]?.trim().toLowerCase();    // C 欄
+            
+            return userInput === emailInSheet || userInput === idInSheet;
+        });
+
+        if (isAuthorized) {
+            // 驗證成功後的轉場效果
             gate.style.transition = "opacity 0.5s ease";
             gate.style.opacity = "0";
             setTimeout(() => {
@@ -342,18 +363,17 @@ async function checkAccess() {
             sessionStorage.setItem('isAuthorized', 'true');
         } else {
             errorMsg.style.display = 'block';
-            errorMsg.innerText = "抱歉，您的 Email 不在名單中，請先填寫表單申請。";
+            errorMsg.innerText = "找不到匹配的 Email 或 ID，請確認後再試。";
+            loginBtn.innerText = "進入網頁";
+            loginBtn.disabled = false;
         }
     } catch (error) {
-        console.error("抓取白名單失敗:", error);
-        alert("系統連線異常，請稍後再試。");
+        console.error("驗證過程出錯:", error);
+        alert("無法連線至驗證伺服器，請檢查網路連線。");
+        loginBtn.innerText = "進入網頁";
+        loginBtn.disabled = false;
     }
-}    // 檢查是否已經驗證過
-    window.onload = function() {
-        if (sessionStorage.getItem('isAuthorized') === 'true') {
-            document.getElementById('entrance-gate').style.display = 'none';
-        }
-    }
+}
 </script>
 </body>
     
