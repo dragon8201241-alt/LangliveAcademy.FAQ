@@ -316,25 +316,39 @@
 </div>
 
 <script>
-    function checkAccess() {
-        // 這就是你的白名單 (Whitelist)
-        const whiteList = ["MEMBER_001", "LANG_VIP_2026", "GUITAR_PRO"]; 
-        
-        const userInput = document.getElementById('user-id-input').value;
-        const errorMsg = document.getElementById('error-msg');
-        const gate = document.getElementById('entrance-gate');
+async function checkAccess() {
+    const userInput = document.getElementById('user-id-input').value;
+    const errorMsg = document.getElementById('error-msg');
+    const gate = document.getElementById('entrance-gate');
 
-        if (whiteList.includes(userInput)) {
-            // 如果在名單內，就把門關掉
-            gate.style.display = 'none';
-            // 存入 session，這樣重新整理網頁時不用重新輸入 (選配)
+    // 1. 這裡貼上你剛才從 Google 試算表複製的 CSV 網址
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSna5sPtfm_TSZ694NSiWzd09aNnAHz0KdZVJF5PMrC9uPN_twOuS9ITGvhurosNwhaL0_iDRlrji8t/pub?gid=769889894&single=true&output=csv";
+
+    try {
+        // 2. 向 Google 抓取資料
+        const response = await fetch(sheetUrl);
+        const data = await response.text();
+        
+        // 3. 將 CSV 轉成 JavaScript 陣列 (簡單處理換行與空白)
+        const whiteList = data.split(/\r?\n/).map(email => email.trim().toLowerCase());
+
+        // 4. 比對輸入 (也轉成小寫以防萬一)
+        if (whiteList.includes(userInput.toLowerCase())) {
+            gate.style.transition = "opacity 0.5s ease";
+            gate.style.opacity = "0";
+            setTimeout(() => {
+                gate.style.display = 'none';
+            }, 500);
             sessionStorage.setItem('isAuthorized', 'true');
         } else {
             errorMsg.style.display = 'block';
+            errorMsg.innerText = "抱歉，您的 Email 不在名單中，請先填寫表單申請。";
         }
+    } catch (error) {
+        console.error("抓取白名單失敗:", error);
+        alert("系統連線異常，請稍後再試。");
     }
-
-    // 檢查是否已經驗證過
+}    // 檢查是否已經驗證過
     window.onload = function() {
         if (sessionStorage.getItem('isAuthorized') === 'true') {
             document.getElementById('entrance-gate').style.display = 'none';
