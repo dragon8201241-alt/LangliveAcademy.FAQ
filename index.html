@@ -307,6 +307,40 @@
         }
     }
 </script>
+<div id="entrance-gate" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: sans-serif;">
+    <h2 style="color: #5d34af;">浪LIVE直播學院 - 內部存取</h2>
+    <p>請輸入您的專屬訪問 ID：</p>
+    <input type="text" id="user-id-input" style="padding: 10px; border: 2px solid #f3357b; border-radius: 8px; outline: none;">
+    <button onclick="checkAccess()" style="margin-top: 15px; padding: 10px 20px; background: #f3357b; color: white; border: none; border-radius: 8px; cursor: pointer;">進入網頁</button>
+    <p id="error-msg" style="color: red; display: none; margin-top: 10px;">ID 錯誤，請聯繫管理員。</p>
+</div>
 
+<script>
+    function checkAccess() {
+        // 這就是你的白名單 (Whitelist)
+        const whiteList = ["MEMBER_001", "LANG_VIP_2026", "GUITAR_PRO"]; 
+        
+        const userInput = document.getElementById('user-id-input').value;
+        const errorMsg = document.getElementById('error-msg');
+        const gate = document.getElementById('entrance-gate');
+
+        if (whiteList.includes(userInput)) {
+            // 如果在名單內，就把門關掉
+            gate.style.display = 'none';
+            // 存入 session，這樣重新整理網頁時不用重新輸入 (選配)
+            sessionStorage.setItem('isAuthorized', 'true');
+        } else {
+            errorMsg.style.display = 'block';
+        }
+    }
+
+    // 檢查是否已經驗證過
+    window.onload = function() {
+        if (sessionStorage.getItem('isAuthorized') === 'true') {
+            document.getElementById('entrance-gate').style.display = 'none';
+        }
+    }
+</script>
 </body>
+    
 </html>
