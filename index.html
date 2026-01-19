@@ -336,87 +336,20 @@
 </div>
 
 <script>
-// 設定登出時間：15 分鐘 (15 * 60 * 1000 毫秒)
-const TIMEOUT_MS = 15 * 60 * 1000;
-
-// 1. 登入驗證函數
-async function checkAccess() {
-    const userInput = document.getElementById('user-id-input').value.trim().toLowerCase();
-    const errorMsg = document.getElementById('error-msg');
-    const gate = document.getElementById('entrance-gate');
-    const loginBtn = document.querySelector('#entrance-gate button');
-
-    if (!userInput) return;
-
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSna5sPtfm_TSZ694NSiWzd09aNnAHz0KdZVJF5PMrC9uPN_twOuS9ITGvhurosNwhaL0_iDRlrji8t/pub?gid=769889894&single=true&output=csv";
-
-    try {
-        loginBtn.innerText = "驗證中...";
-        const response = await fetch(sheetUrl);
-        const csvText = await response.text();
-        const rows = csvText.split(/\r?\n/).map(row => row.split(','));
-
-        const isAuthorized = rows.some(columns => {
-            const emailInSheet = columns[1]?.trim().toLowerCase();
-            const idInSheet = columns[2]?.trim().toLowerCase();
-            return userInput === emailInSheet || userInput === idInSheet;
-        });
-
-        if (isAuthorized) {
-            // 關鍵：記錄登入狀態與「目前時間」
-            const now = Date.now();
-            sessionStorage.setItem('isAuthorized', 'true');
-            sessionStorage.setItem('loginTimestamp', now.toString());
-
-            gate.style.display = 'none';
-        } else {
-            errorMsg.style.display = 'block';
-            loginBtn.innerText = "進入網頁";
-        }
-    } catch (error) {
-        console.error("驗證失敗:", error);
-        loginBtn.innerText = "進入網頁";
-    }
-}
-
-// 2. 登出函數
-function logout() {
-    sessionStorage.removeItem('isAuthorized');
-    sessionStorage.removeItem('loginTimestamp');
-    // 重新整理網頁，這會讓守門員重新出現
-    window.location.reload();
-}
-
-// 3. 核心監控邏輯：檢查 Session 是否過期
-function checkSessionStatus() {
+// 更新時間戳記的函數 (核心：重置時間)
+function resetTimer() {
     const isAuthorized = sessionStorage.getItem('isAuthorized');
-    const loginTimestamp = sessionStorage.getItem('loginTimestamp');
-    const gate = document.getElementById('entrance-gate');
-
-    if (isAuthorized === 'true' && loginTimestamp) {
+    if (isAuthorized === 'true') {
         const now = Date.now();
-        const startTime = parseInt(loginTimestamp);
-
-        // 如果現在時間 - 登入時間 > 15分鐘
-        if (now - startTime > TIMEOUT_MS) {
-            console.log("Session 已過期，自動登出");
-            logout();
-        } else {
-            // 還在 15 分鐘內，維持進入狀態
-            gate.style.display = 'none';
-            
-            // 可選：設定一個倒數計時器，時間到自動踢出去
-            const remainingTime = TIMEOUT_MS - (now - startTime);
-            setTimeout(logout, remainingTime);
-        }
-    } else {
-        // 沒有登入狀態，顯示守門員
-        gate.style.display = 'flex';
+        sessionStorage.setItem('loginTimestamp', now.toString());
+        
+        // 重新設定 15 分鐘後的自動登出
+        clearTimeout(logoutTimer);
+        logoutTimer = setTimeout(logout, TIMEOUT_MS);
+        
+        console.log("偵測到操作，已重新計時 15 分鐘");
     }
 }
-
-// 網頁載入、按到上一頁、重新整理都會執行這裡
-window.onload = checkSessionStatus;
 </script>
 </body>
     
